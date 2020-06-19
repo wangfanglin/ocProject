@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>预览凭证</title>
+<script language="JavaScript">
+function setUrl() {
+  try {
+    var ActiveX = document.getElementById("CTJEstampOcx");
+		if (ActiveX) {
+      var ret_a = ActiveX.SetEvoucherServiceUrl("http://10.68.1.96:7001/realware/services/OCXService");
+			var ret_b = ActiveX.SetEstampServiceUrl("http://10.68.1.95:7002/estamp/services/AsspEStampService");
+			if (ret_a == 0 && ret_b == 0) {
+				init();
+			} else {
+				console.log("1、设置url失败！");
+				alert("预览失败！");
+			}
+		} else {
+			alert("ActiveX调用失败！");
+		}
+	} catch(e){
+  	console.log(e);
+  }
+}
+function init() {
+  try {
+    var ActiveX = document.getElementById("CTJEstampOcx");
+    var bizTypeCode = getQueryVariable("bizTypeCode");
+    var fiscal = getQueryVariable("fiscal");
+    if (ActiveX) {
+      var ret = ActiveX.Initialize("150000011", "150000", fiscal, bizTypeCode,"0",0,0,0);
+      if (ret == 0) {
+				AddVoucherfromServer();
+			} else {
+				console.log("2、初始化失败！");
+				alert("预览失败！");
+			}
+    } else {
+			alert("ActiveX调用失败！");
+    }
+  } catch (e) {
+  	console.log(e);
+  }
+}
+function AddVoucherfromServer() {
+  try {
+    var ActiveX = document.getElementById("CTJEstampOcx");
+    var vouNo = getQueryVariable("billNo");
+    if (ActiveX) {
+      var ret = ActiveX.AddVoucherfromServer(vouNo);
+      if (ret == 0) {
+        PrintPreview();
+			} else {
+				console.log("3、设置凭证失败！");
+				alert("预览失败！");
+			}
+    }
+    else {
+      alert("ActiveX调用失败！");
+    }
+  } catch (e) {
+  	console.log(e);
+  }
+}
+function setCurrentVoucher() {
+  try {
+    var ActiveX = document.getElementById("CTJEstampOcx");
+    var vouNo = getQueryVariable("billNo");
+    if (ActiveX) {
+      var ret = ActiveX.SetCurrentVoucher(vouNo);
+      if (ret != 0) {
+				console.log("4、展示凭证失败！");
+				alert("预览失败！");
+			}
+    }
+    else {
+      alert("ActiveX调用失败！");
+    }
+  } catch (e) {
+  	console.log(e);
+  }
+}
+function PrintPreview() {
+  try {
+    var ActiveX = document.getElementById("CTJEstampOcx");
+    var bizTypeCode = getQueryVariable("bizTypeCode");
+    var fiscal = getQueryVariable("fiscal");
+    var vouNo = getQueryVariable("billNo");
+    if (ActiveX) {
+      var ret = ActiveX.PrintPreview("150000011", "150000",fiscal, bizTypeCode,1,vouNo);
+      if (ret != 0) {
+        console.log("4、展示凭证失败！");
+        alert("预览失败！");
+      }
+    }
+    else {
+      alert("ActiveX调用失败");
+    }
+
+  }
+  catch (e) { }
+}
+function getQueryVariable(variable){
+  var params = getUrlParameters().params;
+  return strToJson(params)[variable];
+}
+function getUrlParameters() {
+  var query = location.search.substring(1);
+  var entries = decodeURIComponent(query).split('&');
+  var obj = {};
+  var param = entries[0].split('=');
+  obj[param[0]] = param[1];
+  return obj;
+}
+function strToJson(str){
+  return eval('(' + str + ')');
+}
+</script>
+</head>
+<body  onload="javascript:setUrl();" style="display: none">
+<OBJECT CLASSID="clsid:4FC4CDDF-84E5-437C-8527-B23F6D70866C" style="width:99%; height:99%" ID="CTJEstampOcx"></OBJECT>
+</body>
+</html>

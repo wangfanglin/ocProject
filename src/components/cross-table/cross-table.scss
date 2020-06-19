@@ -1,0 +1,44 @@
+@import '~@/assets/style/variables.scss';
+.selectedAtom{
+  /deep/ .el-checkbox__label{
+    color:#ccc;
+  }
+}
+.ml40{
+  margin-left:40px;
+}
+.atom-tabs /deep/ .el-tabs__content{
+  overflow:visible;
+}
+.scheme{
+  position:relative;
+  .select-template{
+    color:$--color-primary;
+  }
+  &:hover .templates-list{
+    display:block;
+  }
+  .templates-list{
+    position:absolute;
+    display:none;
+    left:-4px;
+    top:20px;
+    min-width:200px;
+    max-height:340px;
+    z-index:2;
+    border:1px solid #ccc;
+    border-radius:4px;
+    background:white;
+    .template-panel{
+      overflow:auto;
+      padding-left:4px;
+      padding-right:4px;
+      .row{
+        height:28px;
+      }
+    }
+  }
+}
+/deep/ .el-badge__content{
+  background-color:#666;
+}

@@ -1,0 +1,54 @@
+@import '~@/assets/style/variables.scss';
+.panel-container {
+  height: 370px;
+  padding: 10px;
+  border-radius: $--border-radius-base;
+  background-color: $--color-white;
+  box-sizing: border-box;
+  position: relative;
+  .panel-toolbar {
+    height: 30px;
+    line-height: 30px;
+    .panel-title {
+      display: inline-block;
+      border-radius: 20px;
+      color: $--color-white;
+      padding: 0 20px;
+      height: 30px;
+      line-height: 30px;
+      text-align: center;
+    }
+    .panel-message-type {
+      position: relative;
+      width: 260px;
+      display: inline-block;
+      margin-left: 20px;
+      .article-read-message,
+      .article-unread-message {
+        &:before {
+          content: '';
+          width: 5px;
+          height: 5px;
+          background-color: $--color-primary;
+          position: absolute;
+          left: 0;
+          top: 12px;
+          border-radius: 50%;
+        }
+      }
+      .article-read-message {
+        margin-left: 31px;
+        &:before {
+          left: 35%;
+          background-color: #909399;
+        }
+      }
+    }
+  }
+  .panel-main {
+    height: 320px;
+    .panel-progress-style {
+      width: 20%;
+    }
+  }
+}

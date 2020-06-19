@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="renderer" content="webkit">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <link rel="icon" href=/favicon.ico>
+  <script src="../../static/lib/jquery-3.2.1/jquery-3.2.1.min.js"></script>
+  <script src="../../static/lib/bootstrap-3.3.7/js/bootstrap.min.js"></script>
+  <script src="../../static/lib/bootstrap-3.3.7/js/bootstrap-paginator.min.js"></script>
+  <script src="../../static/lib/viewer/viewer.js"></script>
+  <link href="../../static/lib/font-awesome-4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <link href="../../static/lib/viewer/viewer.min.css" rel="stylesheet">
+  <link href="../../static/lib/zxx/zxx.lib.css" rel="stylesheet">
+  <link href="../../static/lib/bootstrap-3.3.7/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      color: #303133;
+      background-color: #F5F7FA;
+    }
+    .bs-main {
+      margin: 0 auto;
+      padding: 65px 40px 10px;
+      min-width: 1190px;
+    }
+
+    th{
+      border:1px solid #e6e6e6;
+      color:#666666;
+      text-align: center;
+      font-size: 14px;
+      word-wrap:break-word;
+      word-break:break-all;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+    }
+    td {
+      padding:5px;
+      border:1px solid #e6e6e6;
+      font-size: 14px;
+      word-wrap:break-word;
+      word-break:break-all;
+    }
+    .table-body{width:100%; overflow-y:auto;}
+    .table-body table tr:nth-child(2n+1){background-color:#f2f2f2;}
+    .red-font {
+      color: red;
+    }
+  </style>
+</head>
+<body>
+<div class="bs-main">
+  <div class="p10">
+    票据张数<span id="invoiceNum" class="red-font">0</span>张，合计金额<span id="invoiceAmount" class="red-font">0</span>元
+    <button type="button" class="btn btn-primary btn-sm r" onclick="handleDownload()">下载</button>
+    <button type="button" class="btn btn-primary btn-sm r" onclick="handlePrint()">打印</button>
+  </div>
+
+  <div class="tablewrap mt10">
+    <div id="showTable" class="table-body">
+      <!--startprint-->
+      <table>
+        <thead>
+          <tr>
+            <th class="tc" width="30px">序号</th>
+            <th width="30px">票据类型</th>
+            <th width="30px">开票日期</th>
+            <th width="30px">票据名称</th>
+            <th width="30px">票据代码</th>
+            <th width="30px">票据号码</th>
+            <th width="30px">金额</th>
+            <th width="30px">交款人</th>
+            <th width="30px">会计凭证号</th>
+            <th width="30px">操作</th>
+          </tr>
+        </thead>
+        <tbody id="showTableBody">
+
+        </tbody>
+      </table>
+      <!--endprint-->
+    </div>
+  </div>
+
+  <div class="page p10 tr">
+    <ul class="pagination bootpag" id="userPageUl">
+    </ul>
+  </div>
+</div>
+
+<div class="dn">
+  <img id="viewer" alt="viewer">
+</div>
+
+<!-- 模态框（Modal） -->
+<div class="modal fade" id="loadingModal" tabindex="-1" role="dialog" data-keyboard="false" aria-labelledby="myModalLabel" aria-hidden="true" data-backdrop="static">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-body">
+        加载中..........
+      </div>
+    </div><!-- /.modal-content -->
+  </div><!-- /.modal -->
+</div>
+<script>
+  $(function(){
+    /**
+     * 分页配置
+     * */
+    var pageInfo = {
+      pageIndex: 1,
+      pageSize: 5
+    }
+
+    /**
+     * 表格查询事件
+     * */
+    function handleGetTableData() {
+      $("#loadingModal").modal('show');
+      $.ajax({
+        type: 'GET',
+        url: '/pty/arc/efo/einvoice/list',
+        data: {
+          agyCode: getQueryVariable('agyCode'),
+          fiscal: getQueryVariable('fiscal'),
+          summaryId: getQueryVariable('summaryId'),
+          pageIndex: pageInfo.pageIndex,
+          pageSize: pageInfo.pageSize
+        },
+        success: function(data) {
+          $("#loadingModal").modal('hide');
+          if( data.code === '200' ) {
+            $("#showTableBody").empty();
+            var result = data.data.result;
+            if( result.length > 0 ) {
+              for( var i=0;i<result.length;i++ ) {
+                var row = [];
+                row.push('<td class="tc" width="10%">'+ Number(i+1) +'</td>');
+                row.push('<td width="10%">'+ judgeType(result[i].einvoiceType) +'</td>');
+                row.push('<td width="10%">'+ result[i].issueDate +'</td>');
+                row.push('<td width="10%">'+ result[i].einvoiceName +'</td>');
+                row.push('<td width="10%">'+ result[i].einvoiceCode +'</td>');
+                row.push('<td width="10%">'+ result[i].einvoiceNumber +'</td>');
+                row.push('<td class="tr" width="10%">'+ formatCurrency(result[i].totalAmount) +'</td>');
+                row.push('<td width="10%">'+ result[i].payerPartyName +'</td>');
+                row.push('<td width="10%">'+ judgeEmpty(result[i].vouNo) +'</td>');
+                row.push('<td class="tc" width="10%">');
+                row.push('<a href="javascript:void(0)" onclick="handleCheck(\''+ result[i].id +'\')">查看</a>');
+                row.push('</td>');
+                $("#showTableBody").append('<tr class="alt">' + row.join('') + '</tr>');
+              }
+            }else{
+              for( var i=0;i<11;i++ ) {
+                var row = [];
+                row.push('<td width="10%">'+ ' ' +'</td>');
+                row.push('<td width="10%">'+ ' ' +'</td>');
+                row.push('<td width="10%">'+ ' ' +'</td>');
+                row.push('<td width="10%">'+ ' ' +'</td>');
+                row.push('<td width="10%">'+ ' ' +'</td>');
+                row.push('<td width="10%">'+ ' ' +'</td>');
+                row.push('<td class="tr" width="10%">'+ ' ' +'</td>');
+                row.push('<td width="10%">'+ ' ' +'</td>');
+                row.push('<td width="10%">'+ ' ' +'</td>');
+                row.push('<td class="tc" width="10%">');
+                row.push('</td>');
+                $("#showTableBody").append('<tr class="alt">' + row.join("") + '</tr>');
+              }
+            }
+            $("#invoiceNum").html(data.data.total);
+            $("#invoiceAmount").html(formatCurrency(data.data.sumAmount));
+            bsPaginator('userPageUl', data.data.total, pageClick, pageInfo.pageIndex, pageInfo.pageSize);
+          }else{
+            window.alert('服务器有误')
+          }
+        },
+        error: function() {
+          $("#loadingModal").modal('hide');
+          window.alert('服务器有误')
+        }
+      })
+    }
+    /**
+     * 票据类型
+     * */
+    function judgeType(type) {
+      if( type === '1' ) {
+        return '开票'
+      }else{
+        return '报销'
+      }
+    }
+    /**
+     * 判断是否为空
+     * */
+    function judgeEmpty(val) {
+      if( val === '' || val === 'null' || val === null || val === undefined || val === 'undefined' ) {
+        return ''
+      }else{
+        return val
+      }
+    }
+    /**
+     * 分页方法
+     * */
+    function 	bsPaginator(eleId,totalNum,onPageClicked,curPage,pageSize){
+      curPage = curPage || 1;
+      pageSize = pageSize || 10;
+      var pages = Math.ceil(totalNum/pageSize);//这里data里面有数据总量
+      if(pages == 0){
+        pages =1;
+      }
+      var element = $('#' + eleId);//对应下面ul的ID
+      var options = {
+        bootstrapMajorVersion:3,
+        currentPage: curPage,//当前页面
+        numberOfPages: pageSize,//一页显示几个按钮（在ul里面生成5个li）
+        totalPages:pages, //总页数
+        onPageClicked:onPageClicked
+      }
+      element.bootstrapPaginator(options);
+    }
+
+    /**
+     * 点击分页器
+     * */
+    function pageClick(event, originalEvent, type,page) {
+      pageInfo.pageIndex = page;
+      handleGetTableData();
+    }
+    /**
+     * 检查页面高度
+     * */
+    $(window).resize(function(){
+      $('.table-body').height($(window).height() - 230);
+    });
+
+    /**
+     * 千分位转换
+     * @param {*} value（要格式化的值）
+     * @param {*} decimals（保留几位小数，默认2位）
+     * @param {*} decPoint（小数点符号，默认.）
+     * @param {*} thousandsSep（千分位符号，默认,）
+     * @param {*} roundtag（舍入参数，'ceil'向上取，'floor'向下取，'round'四舍五入，默认round）
+     */
+    function formatCurrency(value, decimals, decPoint, thousandsSep, roundtag) {
+      if (value !=='' || value !==null || value !==undefined) {
+        value = (value + '').replace(/[^0-9+-Ee.]/g, '');
+        roundtag = roundtag || 'round';
+        var n = !isFinite(+value) ? 0 : +value,
+          prec = !isFinite(+decimals) ? 2 : Math.abs(decimals),
+          dec = (typeof decPoint === 'undefined') ? '.' : decPoint,
+          sep = (typeof thousandsSep === 'undefined') ? ',' : thousandsSep,
+          s = '',
+          toFixedFix = (n, prec) => {
+            var k = Math.pow(10, prec);
+            return '' + parseFloat(Math[roundtag](parseFloat((n * k).toFixed(prec * 2))).toFixed(prec * 2)) / k;
+          };
+        s = (prec ? toFixedFix(n, prec) : '' + Math.round(n)).split('.');
+        const re = /(-?\d+)(\d{3})/;
+        while (re.test(s[0])) {
+          s[0] = s[0].replace(re, '$1' + sep + '$2');
+        }
+
+        if ((s[1] || '').length < prec) {
+          s[1] = s[1] || '';
+          s[1] += new Array(prec - s[1].length + 1).join('0');
+        }
+        return s.join(dec);
+      } else {
+        return '';
+      }
+    }
+    handleGetTableData();
+  });
+  var viewer = null;
+  /**
+   * 查看文件
+   * */
+  function handleCheck(id) {
+    $("#loadingModal").modal('show');
+    $.ajax({
+      type: 'GET',
+      url: '/pty/arc/efo/einvoice/getPng',
+      data: {
+        id: id
+      },
+      success: function(data) {
+        $("#loadingModal").modal('hide');
+        if( data.code === '200' ) {
+          if( viewer !== null ) {
+            viewer.destroy();
+          }
+          $('#viewer').attr('src','data:image/png;base64,' + data.data);
+          viewer = new Viewer(document.getElementById('viewer'), {
+            navbar: false,
+            toolbar: true,
+          });
+          viewer.show();
+        }else{
+          window.alert('服务器有误')
+        }
+      },
+      error: function() {
+        $("#loadingModal").modal('hide');
+        window.alert('服务器有误')
+      }
+    })
+  }
+  /**
+   * 打印页面
+   * */
+  function handlePrint(){
+    bdhtml=window.document.body.innerHTML;
+    sprnstr="<!--startprint-->"; //开始打印标识字符串有17个字符
+    eprnstr="<!--endprint-->"; //结束打印标识字符串
+    prnhtml=bdhtml.substr(bdhtml.indexOf(sprnstr)+17); //从开始打印标识之后的内容
+    prnhtml=prnhtml.substring(0,prnhtml.indexOf(eprnstr)); //截取开始标识和结束标识之间的内容
+    window.document.body.innerHTML=prnhtml; //把需要打印的指定内容赋给body.innerHTML
+    window.print(); //调用浏览器的打印功能打印指定区域
+    window.document.body.innerHTML=bdhtml; // 最后还原页面
+  }
+  /**
+   * 下载文件
+   * */
+  function handleDownload() {
+    $("#loadingModal").modal('show');
+    var summaryNo = getQueryVariable('summaryId');
+    $.ajax({
+      type: 'POST',
+      url: '/pty/arc/efo/summary/createPdf',
+      dataType: 'json',
+      contentType: "application/json; charset=utf-8",
+      data: JSON.stringify({ 'summaryNo':summaryNo}),
+      success: function(data) {
+        $("#loadingModal").modal('hide');
+        if( data.code === '200' ) {
+          var a = document.createElement('a');
+          a.href = '/pty/arc/efo/summary/download?pdfName=' + data.data;
+          a.click();
+        }else{
+          window.alert('下载失败')
+        }
+      },
+      error: function() {
+        $("#loadingModal").modal('hide');
+        window.alert('下载失败')
+      }
+    })
+  }
+
+  /**
+   * 获取路径参数
+   * */
+  function getQueryVariable(variable){
+    var query = window.location.search.substring(1);
+    var vars = query.split("&");
+    for (var i=0;i<vars.length;i++) {
+      var pair = vars[i].split('=');
+      if(pair[0] == variable){return pair[1];}
+    }
+    return '';
+  }
+</script>
+</body>
+</html>
